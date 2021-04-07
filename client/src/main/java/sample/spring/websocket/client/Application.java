@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutionException;
 import org.HdrHistogram.Histogram;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.stomp.StompSession;
+import org.springframework.scheduling.concurrent.DefaultManagedTaskScheduler;
 import org.springframework.web.socket.client.WebSocketClient;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
@@ -28,12 +29,15 @@ public class Application {
 
             x.printStackTrace();
         }
+
+        System.out.println("Client finished.");
     }
 
     private static void wsConnect(String host, int port, long messages, long messagesPerSecond) throws InterruptedException, ExecutionException {
         WebSocketClient webSocketClient = webSocketClient(new StandardWebSocketClient(), true);
 
-        WebSocketStompClient stompClient = new WebSocketStompClient(webSocketClient);
+        WebSocketStompClient stompClient = webSocketStompClient(webSocketClient, true);
+
         stompClient.setMessageConverter(new MappingJackson2MessageConverter());
 
         String url = String.format("ws://%s:%d/ping", host, port);
@@ -54,14 +58,27 @@ public class Application {
     }
 
     private static WebSocketClient webSocketClient(WebSocketClient webSocketClient, boolean sockJs) {
-    	if (sockJs) {
+        WebSocketClient wsClient = null;
+
+        if (sockJs) {
             List<Transport> transports = new ArrayList<>(1);
             transports.add(new WebSocketTransport(webSocketClient));
 
-            return new SockJsClient(transports);
-    	}
+            wsClient = new SockJsClient(transports);
+        }
 
-    	return webSocketClient;
+        return wsClient;
+    }
+
+    private static WebSocketStompClient webSocketStompClient(WebSocketClient webSocketClient, boolean keepalive) {
+        WebSocketStompClient wsStompClient = new WebSocketStompClient(webSocketClient);
+
+        if (keepalive) {
+            wsStompClient.setTaskScheduler(new DefaultManagedTaskScheduler());
+            wsStompClient.setDefaultHeartbeat(new long[] {10_000, 10_000});
+        }
+
+        return wsStompClient;
     }
 
     private static long nanosDelayForRate(long rate) {
