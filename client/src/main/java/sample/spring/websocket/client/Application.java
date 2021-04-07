@@ -4,9 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-import javax.websocket.ContainerProvider;
-import javax.websocket.WebSocketContainer;
-
 import org.HdrHistogram.Histogram;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.stomp.StompSession;
