@@ -3,10 +3,14 @@ package sample.spring.websocket.client;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 import org.HdrHistogram.Histogram;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.stomp.StompSession;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler;
 import org.springframework.scheduling.concurrent.DefaultManagedTaskScheduler;
 import org.springframework.web.socket.client.WebSocketClient;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
@@ -16,6 +20,8 @@ import org.springframework.web.socket.sockjs.client.Transport;
 import org.springframework.web.socket.sockjs.client.WebSocketTransport;
 
 public class Application {
+	private static MyTaskScheduler myTaskScheduler;
+
     public static void main(String args[]) throws Exception {
         try {
             String host            = args[0];
@@ -55,6 +61,13 @@ public class Application {
         System.out.printf(String.format("\nTesting with %d messages at %d per second...\n", messages, messagesPerSecond));
         stompHandler.sendAndReceive(session, messages, nanosDelayForRate(messagesPerSecond));
         printHistogramPercentiles(messages, messagesPerSecond, histogram);
+
+        if (null != myTaskScheduler) {
+            myTaskScheduler.shutdown();
+        }
+
+        stompClient.stop();
+        session.disconnect();
     }
 
     private static WebSocketClient webSocketClient(WebSocketClient webSocketClient, boolean sockJs) {
@@ -74,11 +87,35 @@ public class Application {
         WebSocketStompClient wsStompClient = new WebSocketStompClient(webSocketClient);
 
         if (keepalive) {
-            wsStompClient.setTaskScheduler(new DefaultManagedTaskScheduler());
+            wsStompClient.setTaskScheduler(stompTaskScheduler(TASK_SCHEDULER.SCHEDULED_EXECUTOR_SERVICE));
             wsStompClient.setDefaultHeartbeat(new long[] {10_000, 10_000});
         }
 
         return wsStompClient;
+    }
+
+    private enum TASK_SCHEDULER {
+        DEFAULT_MANAGED,
+        SCHEDULED_EXECUTOR_SERVICE,
+    }
+
+    private static TaskScheduler stompTaskScheduler(TASK_SCHEDULER type) {
+        TaskScheduler taskScheduler = null;
+
+        switch(type) {
+        case DEFAULT_MANAGED:
+            DefaultManagedTaskScheduler defaultManagedTaskScheduler = new DefaultManagedTaskScheduler();
+            // no API to set daemon or shut-down
+
+            taskScheduler = defaultManagedTaskScheduler;
+            break;
+        case SCHEDULED_EXECUTOR_SERVICE:
+            myTaskScheduler = new MyTaskScheduler();
+
+            taskScheduler = myTaskScheduler.taskScheduler();
+        }
+
+        return taskScheduler;
     }
 
     private static long nanosDelayForRate(long rate) {
@@ -102,6 +139,25 @@ public class Application {
 
     private static void usage() {
         System.out.println("\n\nUsage: websocket-client.jar <host> <port> <messages> <messages-per-second>\n\n");
+    }
+
+    private static class MyTaskScheduler {
+        private final ScheduledExecutorService executorService;
+        private final ConcurrentTaskScheduler taskScheduler;
+
+    	public MyTaskScheduler() {
+    		executorService = Executors.newScheduledThreadPool(1);
+    		taskScheduler = new ConcurrentTaskScheduler(executorService);
+    	}
+
+    	public TaskScheduler taskScheduler() {
+    		return taskScheduler;
+    	}
+
+    	public void shutdown() {
+    		executorService.shutdown();
+    	}
+
     }
 
 }
