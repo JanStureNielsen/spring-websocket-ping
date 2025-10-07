@@ -39,7 +39,7 @@ public class Application {
         String url = String.format("ws://%s:%d/ping", host, port);
         StompHandler stompHandler = new StompHandler();
 
-        StompSession session = stompClient.connect(url, stompHandler).get();
+        StompSession session = stompClient.connectAsync(url, stompHandler).get();
         Histogram histogram = stompHandler.getHistogram();
 
         System.out.printf("\nWarming up...\n");
