@@ -14,7 +14,7 @@ mvn clean install
 Start the server on a port:
 
 ```
-java -Dserver.port=7654 server/target/*.jar
+java -Dserver.port=7654 -jar server/target/*.jar
 ```
 
 Then start the client providing the host and port, number of messages and rate:
