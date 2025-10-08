@@ -3,10 +3,12 @@ package sample.spring.websocket.client;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 
 import org.HdrHistogram.Histogram;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.stomp.StompSession;
+import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler;
 import org.springframework.web.socket.client.WebSocketClient;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
@@ -35,6 +37,8 @@ public class Application {
 
         WebSocketStompClient stompClient = new WebSocketStompClient(webSocketClient);
         stompClient.setMessageConverter(new MappingJackson2MessageConverter());
+        stompClient.setTaskScheduler(new ConcurrentTaskScheduler(Executors.newSingleThreadScheduledExecutor()));
+        stompClient.setDefaultHeartbeat(new long[]{30_000, 30_000});
 
         String url = String.format("ws://%s:%d/ping", host, port);
         StompHandler stompHandler = new StompHandler();
@@ -54,14 +58,14 @@ public class Application {
     }
 
     private static WebSocketClient webSocketClient(WebSocketClient webSocketClient, boolean sockJs) {
-    	if (sockJs) {
+        if (sockJs) {
             List<Transport> transports = new ArrayList<>(1);
             transports.add(new WebSocketTransport(webSocketClient));
 
             return new SockJsClient(transports);
-    	}
+        }
 
-    	return webSocketClient;
+        return webSocketClient;
     }
 
     private static long nanosDelayForRate(long rate) {
