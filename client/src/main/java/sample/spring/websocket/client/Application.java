@@ -19,10 +19,10 @@ import org.springframework.web.socket.sockjs.client.WebSocketTransport;
 public class Application {
     public static void main(String args[]) throws Exception {
         try {
-            String host            = args[0];
-            int port               = Integer.parseInt(args[1]);
-            long messages          = Long.parseLong(args[2]);
-            long messagesPerSecond = Long.parseLong(args[3]);
+            String host           = args[0];
+            int port              = Integer.parseInt(args[1]);
+            int messages          = Integer.parseInt(args[2]);
+            int messagesPerSecond = Integer.parseInt(args[3]);
 
             wsConnect(host, port, messages, messagesPerSecond);
         } catch (Exception x) {
@@ -32,7 +32,7 @@ public class Application {
         }
     }
 
-    private static void wsConnect(String host, int port, long messages, long messagesPerSecond) throws InterruptedException, ExecutionException {
+    private static void wsConnect(String host, int port, int messages, int messagesPerSecond) throws InterruptedException, ExecutionException {
         WebSocketClient webSocketClient = webSocketClient(new StandardWebSocketClient(), true);
 
         WebSocketStompClient stompClient = new WebSocketStompClient(webSocketClient);
