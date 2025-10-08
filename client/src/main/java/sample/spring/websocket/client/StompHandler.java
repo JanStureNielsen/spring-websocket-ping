@@ -39,7 +39,7 @@ public class StompHandler extends StompSessionHandlerAdapter {
     public void handleTransportError(StompSession session, Throwable exception) {
         System.out.println("handle transport error");
     }
-    
+
     public Histogram getHistogram() {
         return histogram;
     }
