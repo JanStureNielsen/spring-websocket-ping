@@ -26,8 +26,7 @@ public class Application {
             boolean reconnect     = false;
 
             if (4 < args.length) {
-                var arg5 = args[4].trim();
-                reconnect = "--reconnect".equals(arg5) || "-r".equals(arg5);
+                reconnect = "--reconnect".equals(args[4].trim()) || "-r".equals(args[4].trim());
             }
 
             wsConnect(host, port, messages, messagesPerSecond, reconnect);
@@ -47,8 +46,8 @@ public class Application {
         stompClient.setDefaultHeartbeat(new long[]{30_000, 30_000});
 
         String url = String.format("ws://%s:%d/ping", host, port);
-        StompHandler stompHandler = new StompHandler();
 
+        StompHandler stompHandler = new StompHandler();
         StompSession session = stompClient.connectAsync(url, stompHandler).get();
 
         System.out.printf("\nWarming up...\n");
@@ -90,7 +89,7 @@ public class Application {
     }
 
     private static void usage() {
-        System.out.println("\n\nUsage: websocket-client.jar <host> <port> <messages> <messages-per-second> [--reconnect]\n\n");
+        System.out.println("\n\nUsage: websocket-client.jar <host> <port> <messages> <messages-per-second> [--reconnect|-r]\n\n");
     }
 
 }

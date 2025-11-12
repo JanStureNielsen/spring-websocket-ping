@@ -45,9 +45,10 @@ public class StompHandler extends StompSessionHandlerAdapter {
     }
 
     public void sendAndReceive(StompSession session, long messages, long intervalNanos) {
-        for (long sendAtNanoTime = System.nanoTime(); receiveCount.get() < messages; /*connection.receive()*/) {
+        for (var sendAtNanoTime = System.nanoTime(); receiveCount.get() < messages; /*connection.receive()*/) {
             if (System.nanoTime() >= sendAtNanoTime) {
                 session.send("/app/ping", sendAtNanoTime);
+
 //System.out.println("snd: " + sendAtNanoTime);
                 sendAtNanoTime += intervalNanos;
             }
