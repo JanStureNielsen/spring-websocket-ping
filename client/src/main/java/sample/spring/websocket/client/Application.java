@@ -81,7 +81,7 @@ public class Application {
     }
 
     private static void printHistogramPercentile(double percentile, Histogram histogram) {
-        System.out.printf(String.format("%8.2f : %10.2f µs\n", percentile, histogram.getValueAtPercentile(percentile) / 1000.0));
+        System.out.printf("%8.2f : %10.2f µs\n", percentile, histogram.getValueAtPercentile(percentile) / 1000.0);
     }
 
     private static void usage() {
