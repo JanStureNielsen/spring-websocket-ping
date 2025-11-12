@@ -23,12 +23,10 @@ public class Application {
             int port              = Integer.parseInt(args[1]);
             int messages          = Integer.parseInt(args[2]);
             int messagesPerSecond = Integer.parseInt(args[3]);
-            boolean reconnect = false;
+            boolean reconnect     = false;
 
             if (4 < args.length) {
-                if ("--reconnect".equals(args[4].trim())) {
-                    reconnect = true;
-                }
+                reconnect = "--reconnect".equals(args[4].trim());
             }
 
             wsConnect(host, port, messages, messagesPerSecond, reconnect);
