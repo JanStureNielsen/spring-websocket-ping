@@ -53,7 +53,7 @@ public class StompHandler extends StompSessionHandlerAdapter {
         }
     }
 
-    public void reset() {
+    public void resetCounters() {
         histogram.reset();
         receiveCount.set(0);
     }

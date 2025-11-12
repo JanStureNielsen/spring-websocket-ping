@@ -54,7 +54,7 @@ public class Application {
         stompHandler.sendAndReceive(session, messages, nanosDelayForRate(messagesPerSecond));
         //printHistogramPercentiles(messages, messagesPerSecond, histogram);
 
-        stompHandler.reset();
+        stompHandler.resetCounters();
 
         System.out.printf(String.format("\nTesting with %d messages at %d per second...\n", messages, messagesPerSecond));
         stompHandler.sendAndReceive(session, messages, nanosDelayForRate(messagesPerSecond));
