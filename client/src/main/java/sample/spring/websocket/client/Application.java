@@ -74,12 +74,9 @@ public class Application {
 
     private static void printHistogramPercentiles(long messages, long messagesPerSecond, Histogram histogram) {
         System.out.printf("\nResults (n = %d @ %d per second)\n\n", messages, messagesPerSecond);
-        printHistogramPercentile( 50.00, histogram);
-        printHistogramPercentile( 90.00, histogram);
-        printHistogramPercentile( 99.00, histogram);
-        printHistogramPercentile( 99.90, histogram);
-        printHistogramPercentile( 99.99, histogram);
-        printHistogramPercentile(100.00, histogram);
+        for (var percentage : List.of(50.00, 90.00, 99.00, 99.90, 99.99, 100.00)) {
+            printHistogramPercentile( percentage, histogram);
+        }
         System.out.printf("\n");
     }
 
