@@ -44,7 +44,7 @@ public class StompHandler extends StompSessionHandlerAdapter {
         return histogram;
     }
 
-    public void sendAndReceive(StompSession session, long messages, long intervalNanos) {
+    public void send(StompSession session, long messages, long intervalNanos) {
         for (var sendAtNanoTime = System.nanoTime(); receiveCount.get() < messages;) {
             if (System.nanoTime() >= sendAtNanoTime) {
                 session.send("/app/ping", sendAtNanoTime);

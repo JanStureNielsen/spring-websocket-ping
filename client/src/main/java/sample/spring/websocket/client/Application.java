@@ -48,16 +48,17 @@ public class Application {
         String url = String.format("ws://%s:%d/ping", host, port);
 
         StompHandler stompHandler = new StompHandler();
+
         StompSession session = stompClient.connectAsync(url, stompHandler).get();
 
         System.out.printf("\nWarming up...\n");
-        stompHandler.sendAndReceive(session, messages, nanosDelayForRate(messagesPerSecond));
+        stompHandler.send(session, messages, nanosDelayForRate(messagesPerSecond));
         //printHistogramPercentiles(messages, messagesPerSecond, histogram);
 
         stompHandler.resetCounters();
 
         System.out.printf(String.format("\nTesting with %d messages at %d per second...\n", messages, messagesPerSecond));
-        stompHandler.sendAndReceive(session, messages, nanosDelayForRate(messagesPerSecond));
+        stompHandler.send(session, messages, nanosDelayForRate(messagesPerSecond));
         printHistogramPercentiles(messages, messagesPerSecond, stompHandler.getHistogram());
     }
 
