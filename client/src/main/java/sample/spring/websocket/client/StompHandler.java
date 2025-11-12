@@ -12,7 +12,7 @@ import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter;
 
 public class StompHandler extends StompSessionHandlerAdapter {
     private final Histogram histogram = new Histogram(3);
-    private AtomicLong receiveCount = new AtomicLong();
+    private final AtomicLong receiveCount = new AtomicLong();
 
     @Override
     public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
