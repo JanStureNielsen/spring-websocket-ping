@@ -1,6 +1,7 @@
 package sample.spring.websocket.client;
 
 import java.lang.reflect.Type;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.HdrHistogram.Histogram;
@@ -13,6 +14,7 @@ import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter;
 public class StompHandler extends StompSessionHandlerAdapter {
     private final Histogram histogram = new Histogram(3);
     private final AtomicLong receiveCount = new AtomicLong();
+    private final AtomicInteger reconnectAttempt = new AtomicInteger();
 
     @Override
     public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
@@ -32,7 +34,7 @@ public class StompHandler extends StompSessionHandlerAdapter {
 
     @Override
     public void handleFrame(StompHeaders headers, Object payload) {
-        System.out.println("handle frame");
+        System.out.println("handle frame: " + payload);
     }
 
     @Override
@@ -56,6 +58,7 @@ public class StompHandler extends StompSessionHandlerAdapter {
     public void resetCounters() {
         histogram.reset();
         receiveCount.set(0);
+        reconnectAttempt.set(0);
     }
 
     private void subscribeTopic(String topic, StompSession session) {
