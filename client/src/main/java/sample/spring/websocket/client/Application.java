@@ -26,7 +26,8 @@ public class Application {
             boolean reconnect     = false;
 
             if (4 < args.length) {
-                reconnect = "--reconnect".equals(args[4].trim());
+                var arg5 = args[4].trim();
+                reconnect = "--reconnect".equals(arg5) || "-r".equals(arg5);
             }
 
             wsConnect(host, port, messages, messagesPerSecond, reconnect);
@@ -49,7 +50,6 @@ public class Application {
         StompHandler stompHandler = new StompHandler();
 
         StompSession session = stompClient.connectAsync(url, stompHandler).get();
-        Histogram histogram = stompHandler.getHistogram();
 
         System.out.printf("\nWarming up...\n");
         stompHandler.sendAndReceive(session, messages, nanosDelayForRate(messagesPerSecond));
@@ -59,7 +59,7 @@ public class Application {
 
         System.out.printf(String.format("\nTesting with %d messages at %d per second...\n", messages, messagesPerSecond));
         stompHandler.sendAndReceive(session, messages, nanosDelayForRate(messagesPerSecond));
-        printHistogramPercentiles(messages, messagesPerSecond, histogram);
+        printHistogramPercentiles(messages, messagesPerSecond, stompHandler.getHistogram());
     }
 
     private static WebSocketClient webSocketClient(WebSocketClient webSocketClient, boolean sockJs) {
