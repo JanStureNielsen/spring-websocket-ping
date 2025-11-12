@@ -23,8 +23,15 @@ public class Application {
             int port              = Integer.parseInt(args[1]);
             int messages          = Integer.parseInt(args[2]);
             int messagesPerSecond = Integer.parseInt(args[3]);
+            boolean reconnect = false;
 
-            wsConnect(host, port, messages, messagesPerSecond);
+            if (4 < args.length) {
+                if ("--reconnect".equals(args[4].trim())) {
+                    reconnect = true;
+                }
+            }
+
+            wsConnect(host, port, messages, messagesPerSecond, reconnect);
         } catch (Exception x) {
             usage();
 
@@ -32,7 +39,7 @@ public class Application {
         }
     }
 
-    private static void wsConnect(String host, int port, int messages, int messagesPerSecond) throws InterruptedException, ExecutionException {
+    private static void wsConnect(String host, int port, int messages, int messagesPerSecond, boolean reconnect) throws InterruptedException, ExecutionException {
         WebSocketClient webSocketClient = webSocketClient(new StandardWebSocketClient(), true);
 
         WebSocketStompClient stompClient = new WebSocketStompClient(webSocketClient);
@@ -85,7 +92,7 @@ public class Application {
     }
 
     private static void usage() {
-        System.out.println("\n\nUsage: websocket-client.jar <host> <port> <messages> <messages-per-second>\n\n");
+        System.out.println("\n\nUsage: websocket-client.jar <host> <port> <messages> <messages-per-second> [--reconnect]\n\n");
     }
 
 }
