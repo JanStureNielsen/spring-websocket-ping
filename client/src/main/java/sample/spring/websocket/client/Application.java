@@ -75,8 +75,8 @@ public class Application {
         }
 
         public void reestablishConnection() {
+            sleep(Duration.ofSeconds(1));
             if (reconnecting.compareAndExchange(false, true)) {
-                sleep(Duration.ofSeconds(1));
                 new Thread(() -> {
                     for (var connected = false; !connected;) {
                         try {
@@ -102,7 +102,8 @@ public class Application {
                     sent = true;
                 } catch (Exception x) {
                     System.err.println("jsn: send error: " + x.getMessage());
-                    this.reestablishConnection();
+                    reestablishConnection();
+                    resetCounters();
                     sleep(Duration.ofSeconds(1));
                 }
             }
