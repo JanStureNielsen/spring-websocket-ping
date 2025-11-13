@@ -32,6 +32,9 @@ public class Application {
 
             stompClient.connect(url);
 
+            System.out.printf("\nSleeping after connecting...\n");
+            sleep(Duration.ofSeconds(10));
+
             System.out.printf("\nWarming up...\n");
             stompClient.send(messages, nanosDelayForRate(messagesPerSecond));
             //printHistogramPercentiles(messages, messagesPerSecond, histogram);
