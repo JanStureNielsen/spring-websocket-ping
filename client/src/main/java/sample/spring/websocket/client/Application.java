@@ -25,7 +25,7 @@ public class Application {
             int messages          = Integer.parseInt(args[2]);
             int messagesPerSecond = Integer.parseInt(args[3]);
 
-            var stompClient = StompClient.of();
+            var stompClient = new StompClient();
 
             String url = String.format("ws://%s:%d/ping", host, port);
 
@@ -48,22 +48,47 @@ public class Application {
 
     static class StompClient {
         private final AtomicBoolean reconnecting = new AtomicBoolean(false);
-        private final WebSocketStompClient stompClient;
+        private final WebSocketStompClient wsStompClient;
 
+        private String url;
         private StompHandler stompHandler;
-        private StompSession session;
+        private volatile StompSession session;
 
-        private StompClient(WebSocketStompClient stompClient) {
-            this.stompClient = stompClient;
+        public StompClient() {
+            wsStompClient = new WebSocketStompClient(webSocketClient(new StandardWebSocketClient(), true));
+            wsStompClient.setMessageConverter(new MappingJackson2MessageConverter());
+            wsStompClient.setTaskScheduler(new ConcurrentTaskScheduler(Executors.newSingleThreadScheduledExecutor()));
+            wsStompClient.setDefaultHeartbeat(new long[]{30_000, 30_000});
         }
 
-        public static StompClient of() {
-            return new StompClient(buildClient());
+        public void connect(String url) {
+            try {
+                this.url = url;
+                this.stompHandler = new StompHandler(this);
+                this.session = wsStompClient.connectAsync(url, stompHandler).get();
+            } catch (InterruptedException | ExecutionException x) {
+                reestablishConnection();
+            }
         }
 
-        public void connect(String url) throws InterruptedException, ExecutionException {
-            this.stompHandler = new StompHandler(this);
-            this.session = stompClient.connectAsync(url, stompHandler).get();
+        public void reestablishConnection() {
+            if (reconnecting.compareAndExchange(false, true)) {
+                new Thread(() -> {
+                    for (var connected = false; !connected;) {
+                        try {
+                            this.session = wsStompClient.connectAsync(url, stompHandler).get();
+                            connected = true;
+                            System.out.println("jsn: reconnected!");
+                        } catch (InterruptedException x) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        } catch (ExecutionException x) {
+                            System.err.println("jsn: reconnect failed -- retrying");
+                        }
+                    }
+                    reconnecting.set(false);
+                }).start();
+            }
         }
 
         public void send(long messages, long messagesPerSecond) {
@@ -77,17 +102,6 @@ public class Application {
         public Histogram getHistogram() {
             return stompHandler.getHistogram();
         }
-    }
-
-    private static WebSocketStompClient buildClient() {
-        WebSocketClient webSocketClient = webSocketClient(new StandardWebSocketClient(), true);
-
-        WebSocketStompClient stompClient = new WebSocketStompClient(webSocketClient);
-        stompClient.setMessageConverter(new MappingJackson2MessageConverter());
-        stompClient.setTaskScheduler(new ConcurrentTaskScheduler(Executors.newSingleThreadScheduledExecutor()));
-        stompClient.setDefaultHeartbeat(new long[]{30_000, 30_000});
-
-        return stompClient;
     }
 
     private static WebSocketClient webSocketClient(WebSocketClient webSocketClient, boolean sockJs) {
