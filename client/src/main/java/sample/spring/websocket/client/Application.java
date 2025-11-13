@@ -32,8 +32,6 @@ public class Application {
             wsConnect(host, port, messages, messagesPerSecond, reconnect);
         } catch (Exception x) {
             usage();
-
-            x.printStackTrace();
         }
     }
 
