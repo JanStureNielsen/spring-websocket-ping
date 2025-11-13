@@ -45,6 +45,10 @@ public class StompHandler extends StompSessionHandlerAdapter {
     @Override
     public void handleTransportError(StompSession session, Throwable exception) {
         System.out.println("handle transport error");
+        if (!session.isConnected()) {
+            System.out.println("reconnecting");
+            stompClient.reestablishConnection();
+        }
     }
 
     public void send(StompSession session, long messages, long intervalNanos) {
