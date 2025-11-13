@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.HdrHistogram.Histogram;
@@ -74,10 +75,13 @@ public class Application {
 
         public void reestablishConnection() {
             if (reconnecting.compareAndExchange(false, true)) {
+                try {
+                    TimeUnit.SECONDS.sleep(5);
+                } catch (InterruptedException e) {
+                }
                 new Thread(() -> {
                     for (var connected = false; !connected;) {
                         try {
-                            Thread.sleep(1000);
                             this.session = wsStompClient.connectAsync(url, stompHandler).get();
                             connected = true;
                             System.out.println("jsn: reconnected!");
