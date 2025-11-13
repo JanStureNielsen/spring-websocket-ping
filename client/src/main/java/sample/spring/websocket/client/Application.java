@@ -77,6 +77,7 @@ public class Application {
                 new Thread(() -> {
                     for (var connected = false; !connected;) {
                         try {
+                            Thread.sleep(1000);
                             this.session = wsStompClient.connectAsync(url, stompHandler).get();
                             connected = true;
                             System.out.println("jsn: reconnected!");
@@ -93,7 +94,12 @@ public class Application {
         }
 
         public void send(long messages, long messagesPerSecond) {
-            stompHandler.send(session, messages, messagesPerSecond);
+            try {
+                stompHandler.send(session, messages, messagesPerSecond);
+            } catch (Exception x) {
+                System.err.println("jsn: send error: " + x.getMessage());
+                this.reestablishConnection();
+            }
         }
 
         public void resetCounters() {
