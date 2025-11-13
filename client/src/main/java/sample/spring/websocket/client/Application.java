@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.HdrHistogram.Histogram;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
@@ -23,13 +24,23 @@ public class Application {
             int port              = Integer.parseInt(args[1]);
             int messages          = Integer.parseInt(args[2]);
             int messagesPerSecond = Integer.parseInt(args[3]);
-            boolean reconnect     = false;
 
-            if (4 < args.length) {
-                reconnect = "--reconnect".equals(args[4].trim()) || "-r".equals(args[4].trim());
-            }
+            var stompClient = StompClient.of();
 
-            wsConnect(host, port, messages, messagesPerSecond, reconnect);
+            String url = String.format("ws://%s:%d/ping", host, port);
+
+            stompClient.connect(url);
+
+            System.out.printf("\nWarming up...\n");
+            stompClient.send(messages, nanosDelayForRate(messagesPerSecond));
+            //printHistogramPercentiles(messages, messagesPerSecond, histogram);
+
+            stompClient.resetCounters();
+
+            System.out.printf(String.format("\nTesting with %d messages at %d per second...\n", messages, messagesPerSecond));
+            stompClient.send(messages, nanosDelayForRate(messagesPerSecond));
+            printHistogramPercentiles(messages, messagesPerSecond, stompClient.getHistogram());
+
         } catch (Exception x) {
             usage();
 
@@ -37,7 +48,40 @@ public class Application {
         }
     }
 
-    private static void wsConnect(String host, int port, int messages, int messagesPerSecond, boolean reconnect) throws InterruptedException, ExecutionException {
+    static class StompClient {
+        private final AtomicBoolean reconnecting = new AtomicBoolean(false);
+        private final WebSocketStompClient stompClient;
+
+        private StompHandler stompHandler;
+        private StompSession session;
+
+        private StompClient(WebSocketStompClient stompClient) {
+            this.stompClient = stompClient;
+        }
+
+        public static StompClient of() {
+            return new StompClient(buildClient());
+        }
+
+        public void connect(String url) throws InterruptedException, ExecutionException {
+            this.stompHandler = new StompHandler(this);
+            this.session = stompClient.connectAsync(url, stompHandler).get();
+        }
+
+        public void send(long messages, long messagesPerSecond) {
+            stompHandler.send(session, messages, messagesPerSecond);
+        }
+
+        public void resetCounters() {
+            stompHandler.resetCounters();
+        }
+
+        public Histogram getHistogram() {
+            return stompHandler.getHistogram();
+        }
+    }
+
+    private static WebSocketStompClient buildClient() {
         WebSocketClient webSocketClient = webSocketClient(new StandardWebSocketClient(), true);
 
         WebSocketStompClient stompClient = new WebSocketStompClient(webSocketClient);
@@ -45,21 +89,7 @@ public class Application {
         stompClient.setTaskScheduler(new ConcurrentTaskScheduler(Executors.newSingleThreadScheduledExecutor()));
         stompClient.setDefaultHeartbeat(new long[]{30_000, 30_000});
 
-        String url = String.format("ws://%s:%d/ping", host, port);
-
-        StompHandler stompHandler = new StompHandler();
-
-        StompSession session = stompClient.connectAsync(url, stompHandler).get();
-
-        System.out.printf("\nWarming up...\n");
-        stompHandler.send(session, messages, nanosDelayForRate(messagesPerSecond));
-        //printHistogramPercentiles(messages, messagesPerSecond, histogram);
-
-        stompHandler.resetCounters();
-
-        System.out.printf(String.format("\nTesting with %d messages at %d per second...\n", messages, messagesPerSecond));
-        stompHandler.send(session, messages, nanosDelayForRate(messagesPerSecond));
-        printHistogramPercentiles(messages, messagesPerSecond, stompHandler.getHistogram());
+        return stompClient;
     }
 
     private static WebSocketClient webSocketClient(WebSocketClient webSocketClient, boolean sockJs) {
@@ -90,7 +120,7 @@ public class Application {
     }
 
     private static void usage() {
-        System.out.println("\n\nUsage: websocket-client.jar <host> <port> <messages> <messages-per-second> [--reconnect|-r]\n\n");
+        System.out.println("\n\nUsage: websocket-client.jar <host> <port> <messages> <messages-per-second>\n\n");
     }
 
 }
