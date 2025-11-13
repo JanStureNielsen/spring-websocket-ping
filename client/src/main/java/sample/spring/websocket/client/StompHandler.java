@@ -1,7 +1,6 @@
 package sample.spring.websocket.client;
 
 import java.lang.reflect.Type;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.HdrHistogram.Histogram;
@@ -11,10 +10,16 @@ import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter;
 
+import sample.spring.websocket.client.Application.StompClient;
+
 public class StompHandler extends StompSessionHandlerAdapter {
     private final Histogram histogram = new Histogram(3);
     private final AtomicLong receiveCount = new AtomicLong();
-    private final AtomicInteger reconnectAttempt = new AtomicInteger();
+    private final StompClient stompClient;
+
+    public StompHandler(StompClient stompClient) {
+        this.stompClient = stompClient;
+    }
 
     @Override
     public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
@@ -42,10 +47,6 @@ public class StompHandler extends StompSessionHandlerAdapter {
         System.out.println("handle transport error");
     }
 
-    public Histogram getHistogram() {
-        return histogram;
-    }
-
     public void send(StompSession session, long messages, long intervalNanos) {
         for (var sendAtNanoTime = System.nanoTime(); receiveCount.get() < messages;) {
             if (System.nanoTime() >= sendAtNanoTime) {
@@ -55,10 +56,13 @@ public class StompHandler extends StompSessionHandlerAdapter {
         }
     }
 
+    public Histogram getHistogram() {
+        return histogram;
+    }
+
     public void resetCounters() {
         histogram.reset();
         receiveCount.set(0);
-        reconnectAttempt.set(0);
     }
 
     private void subscribeTopic(String topic, StompSession session) {
