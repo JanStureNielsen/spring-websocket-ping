@@ -43,8 +43,6 @@ public class Application {
 
         } catch (Exception x) {
             usage();
-
-            x.printStackTrace();
         }
     }
 
