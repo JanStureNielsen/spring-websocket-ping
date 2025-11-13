@@ -1,5 +1,6 @@
 package sample.spring.websocket.client;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -75,10 +76,7 @@ public class Application {
 
         public void reestablishConnection() {
             if (reconnecting.compareAndExchange(false, true)) {
-                try {
-                    TimeUnit.SECONDS.sleep(5);
-                } catch (InterruptedException e) {
-                }
+                sleep(Duration.ofSeconds(1));
                 new Thread(() -> {
                     for (var connected = false; !connected;) {
                         try {
@@ -98,11 +96,15 @@ public class Application {
         }
 
         public void send(long messages, long messagesPerSecond) {
-            try {
-                stompHandler.send(session, messages, messagesPerSecond);
-            } catch (Exception x) {
-                System.err.println("jsn: send error: " + x.getMessage());
-                this.reestablishConnection();
+            for (var sent = false; !sent;) {
+                try {
+                    stompHandler.send(session, messages, messagesPerSecond);
+                    sent = true;
+                } catch (Exception x) {
+                    System.err.println("jsn: send error: " + x.getMessage());
+                    this.reestablishConnection();
+                    sleep(Duration.ofSeconds(1));
+                }
             }
         }
 
@@ -115,6 +117,12 @@ public class Application {
         }
     }
 
+    private static void sleep(Duration duration) {
+        try {
+            Thread.sleep(duration);
+        } catch (Exception ignored) {
+        }
+    }
     private static WebSocketClient webSocketClient(WebSocketClient webSocketClient, boolean sockJs) {
         if (sockJs) {
             List<Transport> transports = new ArrayList<>(1);
