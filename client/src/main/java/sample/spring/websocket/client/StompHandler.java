@@ -48,6 +48,8 @@ public class StompHandler extends StompSessionHandlerAdapter {
         if (!session.isConnected()) {
             System.out.println("reconnecting");
             stompClient.reestablishConnection();
+        } else {
+            System.out.println("session is connected...");
         }
     }
 
