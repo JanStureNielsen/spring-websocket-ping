@@ -42,9 +42,10 @@ public class StompHandler extends StompSessionHandlerAdapter {
         System.out.println("handle frame: " + payload);
     }
 
+    private final AtomicLong transportErrorCount = new AtomicLong();
     @Override
     public void handleTransportError(StompSession session, Throwable exception) {
-        System.out.println("handle transport error");
+        System.out.println("handle transport error: " + transportErrorCount.incrementAndGet());
         if (!session.isConnected()) {
             System.out.println("reconnecting");
             stompClient.reestablishConnection();
