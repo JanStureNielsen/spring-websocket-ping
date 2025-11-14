@@ -156,13 +156,9 @@ public class Application {
     private static void printHistogramPercentiles(long messages, long messagesPerSecond, Histogram histogram) {
         System.out.printf("\nResults (n = %d @ %d per second)\n\n", messages, messagesPerSecond);
         for (var percentage : List.of(50.00, 90.00, 99.00, 99.90, 99.99, 100.00)) {
-            printHistogramPercentile( percentage, histogram);
+            System.out.printf("%8.2f : %10.2f µs\n", percentage, histogram.getValueAtPercentile(percentage) / 1000.0);
         }
         System.out.printf("\n");
-    }
-
-    private static void printHistogramPercentile(double percentile, Histogram histogram) {
-        System.out.printf("%8.2f : %10.2f µs\n", percentile, histogram.getValueAtPercentile(percentile) / 1000.0);
     }
 
     private static void usage() {
