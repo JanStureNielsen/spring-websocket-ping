@@ -96,7 +96,7 @@ public class Application {
                             } catch (InterruptedException x) {
                                 Thread.currentThread().interrupt();
                                 break;
-                            } catch (ExecutionException x) {
+                            } catch (/*Execution*/Exception x) {
                                 System.err.println("jsn: reconnect failed -- retrying");
                             }
                         }
