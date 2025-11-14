@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.HdrHistogram.Histogram;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
@@ -77,22 +78,22 @@ public class Application {
             }
         }
 
-        private final AtomicLong reestablishRequests = new AtomicLong();
-        private final AtomicLong reestablishThreads = new AtomicLong();
+        private final AtomicLong reconnects = new AtomicLong();
+        private final ReentrantLock reconnectLock = new ReentrantLock();
 
         public void reconnect() {
-            reestablishRequests.incrementAndGet();
+            reconnects.incrementAndGet();
 
             if (reconnecting.compareAndExchange(false, true)) {
-                if (0 == reestablishThreads.get()) {
+                reconnectLock.lock();
+                try {
                     new Thread(() -> {
-                        reestablishThreads.incrementAndGet();
                         for (var connected = false; !connected;) {
                             try {
                                 Thread.sleep(Duration.ofSeconds(2));
                                 this.session = wsStompClient.connectAsync(url, stompHandler).get();
                                 connected = true;
-                                System.out.println("jsn: reconnected! notifications: " + reestablishRequests.get() + " threads: " + reestablishThreads.get());
+                                System.out.println("jsn: reconnected! notifications: " + reconnects.get());
                             } catch (InterruptedException x) {
                                 Thread.currentThread().interrupt();
                                 break;
@@ -100,9 +101,10 @@ public class Application {
                                 System.err.println("jsn: reconnect failed -- retrying");
                             }
                         }
-                        reestablishThreads.decrementAndGet();
                         reconnecting.set(false);
                     }).start();
+                } finally {
+                    reconnectLock.unlock();
                 }
             }
         }
