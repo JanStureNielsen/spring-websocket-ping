@@ -1,6 +1,7 @@
 package sample.spring.websocket.client;
 
 import java.lang.reflect.Type;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.HdrHistogram.Histogram;
@@ -42,15 +43,13 @@ public class StompHandler extends StompSessionHandlerAdapter {
         System.out.println("handle frame: " + payload);
     }
 
-    private final AtomicLong transportErrorCount = new AtomicLong();
+    private final AtomicLong transportErrors = new AtomicLong();
     @Override
     public void handleTransportError(StompSession session, Throwable exception) {
-        System.out.println("handle transport error: " + transportErrorCount.incrementAndGet());
+        transportErrors.incrementAndGet();
         if (!session.isConnected()) {
-            System.out.println("reconnecting");
             stompClient.reestablishConnection();
-        } else {
-            System.out.println("session is connected...");
+            System.err.println("jsn: transport error: " + transportErrors.get());
         }
     }
 
