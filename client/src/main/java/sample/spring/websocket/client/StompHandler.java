@@ -82,8 +82,6 @@ public class StompHandler extends StompSessionHandlerAdapter {
             public void handleFrame(StompHeaders headers, Object payload) {
                 histogram.recordValue(System.nanoTime() - (long)payload);
 
-//System.out.println("rec: " + payload);
-
                 receiveCount.incrementAndGet();
             }
         });
