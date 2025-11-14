@@ -1,7 +1,6 @@
 package sample.spring.websocket.client;
 
 import java.lang.reflect.Type;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.HdrHistogram.Histogram;
