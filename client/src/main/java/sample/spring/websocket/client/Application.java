@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.HdrHistogram.Histogram;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
@@ -76,26 +77,37 @@ public class Application {
             }
         }
 
+        private final AtomicLong reestablishRequests = new AtomicLong();
+        private final AtomicLong reestablishThreads = new AtomicLong();
+
         public void reestablishConnection() {
-            sleep(Duration.ofSeconds(1));
+            reestablishRequests.incrementAndGet();
+
             if (reconnecting.compareAndExchange(false, true)) {
-                new Thread(() -> {
-                    for (var connected = false; !connected;) {
-                        try {
-                            this.session = wsStompClient.connectAsync(url, stompHandler).get();
-                            connected = true;
-                            System.out.println("jsn: reconnected!");
-                        } catch (InterruptedException x) {
-                            Thread.currentThread().interrupt();
-                            break;
-                        } catch (ExecutionException x) {
-                            System.err.println("jsn: reconnect failed -- retrying");
+                if (0 == reestablishThreads.get()) {
+                    new Thread(() -> {
+                        reestablishThreads.incrementAndGet();
+                        for (var connected = false; !connected;) {
+                            try {
+                                Thread.sleep(Duration.ofSeconds(2));
+                                this.session = wsStompClient.connectAsync(url, stompHandler).get();
+                                connected = true;
+                                System.out.println("jsn: reconnected! notifications: " + reestablishRequests.get() + " threads: " + reestablishThreads.get());
+                            } catch (InterruptedException x) {
+                                Thread.currentThread().interrupt();
+                                break;
+                            } catch (ExecutionException x) {
+                                System.err.println("jsn: reconnect failed -- retrying");
+                            }
                         }
-                    }
-                    reconnecting.set(false);
-                }).start();
+                        reestablishThreads.decrementAndGet();
+                        reconnecting.set(false);
+                    }).start();
+                }
             }
         }
+
+
 
         public void send(long messages, long messagesPerSecond) {
             for (var sent = false; !sent;) {
