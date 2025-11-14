@@ -47,7 +47,7 @@ public class StompHandler extends StompSessionHandlerAdapter {
     public void handleTransportError(StompSession session, Throwable exception) {
         transportErrors.incrementAndGet();
         if (!session.isConnected()) {
-            stompClient.reestablishConnection();
+            stompClient.reconnect();
             System.err.println("jsn: transport error: " + transportErrors.get());
         }
     }

@@ -73,14 +73,14 @@ public class Application {
                 this.stompHandler = new StompHandler(this);
                 this.session = wsStompClient.connectAsync(url, stompHandler).get();
             } catch (InterruptedException | ExecutionException x) {
-                reestablishConnection();
+                reconnect();
             }
         }
 
         private final AtomicLong reestablishRequests = new AtomicLong();
         private final AtomicLong reestablishThreads = new AtomicLong();
 
-        public void reestablishConnection() {
+        public void reconnect() {
             reestablishRequests.incrementAndGet();
 
             if (reconnecting.compareAndExchange(false, true)) {
@@ -116,7 +116,7 @@ public class Application {
                     sent = true;
                 } catch (Exception x) {
                     System.err.println("jsn: send error: " + x.getMessage());
-                    reestablishConnection();
+                    reconnect();
                     resetCounters();
                     sleep(Duration.ofSeconds(1));
                 }
