@@ -5,7 +5,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.HdrHistogram.Histogram;
 import org.springframework.messaging.simp.stomp.StompCommand;
-import org.springframework.messaging.simp.stomp.StompFrameHandler;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter;
@@ -28,7 +27,6 @@ public class StompHandler extends StompSessionHandlerAdapter {
 
     @Override
     public Type getPayloadType(StompHeaders headers) {
-        System.out.println("handle payload type");
         return Long.class;
     }
 
@@ -39,7 +37,8 @@ public class StompHandler extends StompSessionHandlerAdapter {
 
     @Override
     public void handleFrame(StompHeaders headers, Object payload) {
-        System.out.println("handle frame: " + payload);
+        histogram.recordValue(System.nanoTime() - (long)payload);
+        receiveCount.incrementAndGet();
     }
 
     @Override
@@ -68,19 +67,7 @@ public class StompHandler extends StompSessionHandlerAdapter {
     }
 
     private void _subscribe(String topic, StompSession session) {
-        session.subscribe(topic, new StompFrameHandler() {
-
-            @Override
-            public Type getPayloadType(StompHeaders headers) {
-                return Long.class;
-            }
-
-            @Override
-            public void handleFrame(StompHeaders headers, Object payload) {
-                histogram.recordValue(System.nanoTime() - (long)payload);
-                receiveCount.incrementAndGet();
-            }
-        });
+        session.subscribe(topic, this);
     }
 
 }
