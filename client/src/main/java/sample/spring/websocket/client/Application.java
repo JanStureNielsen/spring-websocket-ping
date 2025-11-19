@@ -112,35 +112,6 @@ public class Application {
             }
         }
 
-        public void reconnect() {
-            reconnects.incrementAndGet();
-
-            if (reconnecting.compareAndExchange(false, true)) {
-                reconnectLock.lock();
-                try {
-                    new Thread(() -> {
-                        while (!this.session.isConnected()) {
-                        //for (var connected = false; !connected;) {
-                            try {
-                                Thread.sleep(Duration.ofSeconds(2));
-                                this.session = wsStompClient.connectAsync(url, stompHandler).get();
-                                //connected = true;
-                                System.out.println("jsn: reconnected! notifications: " + reconnects.get());
-                            } catch (InterruptedException x) {
-                                Thread.currentThread().interrupt();
-                                break;
-                            } catch (/*Execution*/Exception x) {
-                                System.err.println("jsn: reconnect failed -- retrying");
-                            }
-                        }
-                        reconnecting.set(false);
-                    }).start();
-                } finally {
-                    reconnectLock.unlock();
-                }
-            }
-        }
-
         public void send(long messages, long intervalNanos) {
             for (var sendAtNanoTime = System.nanoTime(); receiveCount.get() < messages; _receive()) {
                 if (System.nanoTime() >= sendAtNanoTime) {
