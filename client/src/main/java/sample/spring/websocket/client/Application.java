@@ -58,7 +58,6 @@ public class Application {
     }
 
     static class StompClient {
-        private final AtomicBoolean reconnecting = new AtomicBoolean(false);
         private final WebSocketStompClient wsStompClient;
 
         private String url;
@@ -70,6 +69,7 @@ public class Application {
 
         private final Histogram histogram = new Histogram(3);
         private final AtomicLong receiveCount = new AtomicLong(0);
+        private final AtomicLong reconnectCount = new AtomicLong();
 
         public StompClient() {
             wsStompClient = new WebSocketStompClient(webSocketClient(new StandardWebSocketClient(), true));
@@ -87,22 +87,18 @@ public class Application {
                 this.stompHandler = new StompHandler(queue);
                 this.session = wsStompClient.connectAsync(url, stompHandler).get();
             } catch (InterruptedException | ExecutionException x) {
-                reconnect();
+                _reconnect();
             }
         }
 
-        private final AtomicLong reconnects = new AtomicLong();
-        private final ReentrantLock reconnectLock = new ReentrantLock();
-
-        public void _reconnect(TransportErrorEvent error) {
-            reconnects.incrementAndGet();
+        public void _reconnect() {
+            reconnectCount.incrementAndGet();
 
             while (!this.session.isConnected()) {
                 try {
                     Thread.sleep(Duration.ofSeconds(2));
                     this.session = wsStompClient.connectAsync(url, stompHandler).get();
-                    //connected = true;
-                    System.out.println("jsn: reconnected! notifications: " + reconnects.get());
+                    System.out.println("jsn: reconnected! notifications: " + reconnectCount.get());
                 } catch (InterruptedException x) {
                     Thread.currentThread().interrupt();
                     break;
@@ -115,8 +111,12 @@ public class Application {
         public void send(long messages, long intervalNanos) {
             for (var sendAtNanoTime = System.nanoTime(); receiveCount.get() < messages; _receive()) {
                 if (System.nanoTime() >= sendAtNanoTime) {
-                    session.send("/app/ping", sendAtNanoTime);
-                    sendAtNanoTime += intervalNanos;
+                    try {
+                        session.send("/app/ping", sendAtNanoTime);
+                        sendAtNanoTime += intervalNanos;
+                    } catch (Exception x) {
+                        _reconnect();
+                    }
                 }
             }
         }
@@ -151,11 +151,12 @@ public class Application {
         }
 
         private void _transportError(TransportErrorEvent error) {
-            _reconnect(error);
+            System.err.println("jsn: TRANSPORT ERROR event!" + error);
+            _reconnect();
         }
 
         private void _exception(ExceptionEvent error) {
-            System.err.println("jsn: exception event! " + error);
+            System.err.println("jsn: EXCEPTION event! " + error);
         }
 
         record ExceptionEvent(StompSession session, StompCommand command, StompHeaders headers, byte[] payload, Throwable cause) {
