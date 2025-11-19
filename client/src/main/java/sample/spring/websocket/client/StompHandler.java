@@ -21,7 +21,7 @@ public class StompHandler extends StompSessionHandlerAdapter {
 
     @Override
     public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
-        _subscribe("/topic/messages", session);
+        session.subscribe("/topic/messages", this);
     }
 
     @Override
@@ -42,10 +42,6 @@ public class StompHandler extends StompSessionHandlerAdapter {
     @Override
     public void handleTransportError(StompSession session, Throwable cause) {
         queue.add(new TransportErrorEvent(session, cause));
-    }
-
-    private void _subscribe(String topic, StompSession session) {
-        session.subscribe(topic, this);
     }
 
 }
