@@ -109,8 +109,6 @@ public class Application {
             }
         }
 
-
-
         public void send(long messages, long messagesPerSecond) {
             for (var sent = false; !sent;) {
                 try {
