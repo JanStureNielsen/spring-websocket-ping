@@ -90,9 +90,8 @@ public class Application {
         }
 
         public void _reconnect() {
-            reconnectCount.incrementAndGet();
-
             while (!this.session.isConnected()) {
+                reconnectCount.incrementAndGet();
                 try {
                     Thread.sleep(Duration.ofSeconds(2));
                     this.session = wsStompClient.connectAsync(url, stompHandler).get();
