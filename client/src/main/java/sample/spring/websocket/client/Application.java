@@ -163,7 +163,6 @@ public class Application {
             events.clear();
             if (0 < queue.drainTo(events)) {
                 for (var event : events) {
-                    System.out.println("jsn: event total: " + events.size());
                     switch (event) {
                         case PongEvent p -> _update(p);
                         case TransportErrorEvent t -> _transportError(t);
