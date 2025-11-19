@@ -145,12 +145,12 @@ public class Application {
         }
 
         private void _transportError(TransportErrorEvent error) {
-            System.err.println("jsn: TRANSPORT ERROR event!" + error);
+            System.err.println("jsn: TRANSPORT ERROR event! " + error.cause().getMessage());
             _reconnect();
         }
 
         private void _exception(ExceptionEvent error) {
-            System.err.println("jsn: EXCEPTION event! " + error);
+            System.err.println("jsn: EXCEPTION event! " + error.cause().getMessage());
         }
 
         record ExceptionEvent(StompSession session, StompCommand command, StompHeaders headers, byte[] payload, Throwable cause) {
