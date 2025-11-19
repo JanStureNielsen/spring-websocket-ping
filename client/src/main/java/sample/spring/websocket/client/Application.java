@@ -93,13 +93,10 @@ public class Application {
             while (!this.session.isConnected()) {
                 reconnectCount.incrementAndGet();
                 try {
-                    Thread.sleep(Duration.ofSeconds(2));
                     this.session = wsStompClient.connectAsync(url, stompHandler).get();
                     System.out.println("jsn: reconnected! notifications: " + reconnectCount.get());
-                } catch (InterruptedException x) {
-                    Thread.currentThread().interrupt();
-                    break;
-                } catch (/*Execution*/Exception x) {
+                } catch (Exception x) {
+                    sleep(Duration.ofSeconds(2));
                     System.err.println("jsn: reconnect failed -- retrying");
                 }
             }
