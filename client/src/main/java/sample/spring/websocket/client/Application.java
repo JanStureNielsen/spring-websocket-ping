@@ -89,7 +89,7 @@ public class Application {
             }
         }
 
-        public void _reconnect() {
+        private void _reconnect() {
             while (!this.session.isConnected()) {
                 reconnectCount.incrementAndGet();
                 try {
