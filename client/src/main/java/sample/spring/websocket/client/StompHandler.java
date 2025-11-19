@@ -23,7 +23,7 @@ public class StompHandler extends StompSessionHandlerAdapter {
 
     @Override
     public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
-        subscribeTopic("/topic/messages", session);
+        _subscribe("/topic/messages", session);
     }
 
     @Override
@@ -67,7 +67,7 @@ public class StompHandler extends StompSessionHandlerAdapter {
         receiveCount.set(0);
     }
 
-    private void subscribeTopic(String topic, StompSession session) {
+    private void _subscribe(String topic, StompSession session) {
         session.subscribe(topic, new StompFrameHandler() {
 
             @Override
