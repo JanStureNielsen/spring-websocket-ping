@@ -3,6 +3,8 @@ package sample.spring.websocket.client;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -11,6 +13,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.HdrHistogram.Histogram;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
+import org.springframework.messaging.simp.stomp.StompCommand;
+import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler;
 import org.springframework.web.socket.client.WebSocketClient;
@@ -61,17 +65,26 @@ public class Application {
         private StompHandler stompHandler;
         private volatile StompSession session;
 
+        private final BlockingQueue<Object> queue;
+        private final List<Object> events;
+
+        private final Histogram histogram = new Histogram(3);
+        private final AtomicLong receiveCount = new AtomicLong(0);
+
         public StompClient() {
             wsStompClient = new WebSocketStompClient(webSocketClient(new StandardWebSocketClient(), true));
             wsStompClient.setMessageConverter(new MappingJackson2MessageConverter());
             wsStompClient.setTaskScheduler(new ConcurrentTaskScheduler(Executors.newSingleThreadScheduledExecutor()));
             wsStompClient.setDefaultHeartbeat(new long[]{30_000, 30_000});
+
+            this.queue = new ArrayBlockingQueue<>(1000);
+            this.events = new ArrayList<>();
         }
 
         public void connect(String url) {
             try {
                 this.url = url;
-                this.stompHandler = new StompHandler(this);
+                this.stompHandler = new StompHandler(queue);
                 this.session = wsStompClient.connectAsync(url, stompHandler).get();
             } catch (InterruptedException | ExecutionException x) {
                 reconnect();
@@ -80,6 +93,24 @@ public class Application {
 
         private final AtomicLong reconnects = new AtomicLong();
         private final ReentrantLock reconnectLock = new ReentrantLock();
+
+        public void _reconnect(TransportErrorEvent error) {
+            reconnects.incrementAndGet();
+
+            while (!this.session.isConnected()) {
+                try {
+                    Thread.sleep(Duration.ofSeconds(2));
+                    this.session = wsStompClient.connectAsync(url, stompHandler).get();
+                    //connected = true;
+                    System.out.println("jsn: reconnected! notifications: " + reconnects.get());
+                } catch (InterruptedException x) {
+                    Thread.currentThread().interrupt();
+                    break;
+                } catch (/*Execution*/Exception x) {
+                    System.err.println("jsn: reconnect failed -- retrying");
+                }
+            }
+        }
 
         public void reconnect() {
             reconnects.incrementAndGet();
@@ -110,27 +141,62 @@ public class Application {
             }
         }
 
-        public void send(long messages, long messagesPerSecond) {
-            for (var sent = false; !sent;) {
-                try {
-                    stompHandler.send(session, messages, messagesPerSecond);
-                    sent = true;
-                } catch (Exception x) {
-                    System.err.println("jsn: send error: " + x.getMessage());
-                    reconnect();
-                    resetCounters();
-                    sleep(Duration.ofSeconds(1));
+        public void send(long messages, long intervalNanos) {
+            for (var sendAtNanoTime = System.nanoTime(); receiveCount.get() < messages; _receive()) {
+                if (System.nanoTime() >= sendAtNanoTime) {
+                    session.send("/app/ping", sendAtNanoTime);
+                    sendAtNanoTime += intervalNanos;
                 }
             }
         }
 
         public void resetCounters() {
-            stompHandler.resetCounters();
+            histogram.reset();
+            receiveCount.set(0);
         }
 
         public Histogram getHistogram() {
-            return stompHandler.getHistogram();
+            return histogram;
         }
+
+        private void _receive() {
+            events.clear();
+            if (0 < queue.drainTo(events)) {
+                for (var event : events) {
+                    System.out.println("jsn: event total: " + events.size());
+                    switch (event) {
+                        case PongEvent p -> _update(p);
+                        case TransportErrorEvent t -> _transportError(t);
+                        case ExceptionEvent e -> _exception(e);
+                        default -> {System.err.println("jsn: ignored event: " + event);}
+                    }
+                }
+                events.clear();
+            }
+        }
+
+        private void _update(PongEvent pong) {
+            histogram.recordValue(pong.time());
+            receiveCount.incrementAndGet();
+        }
+
+        private void _transportError(TransportErrorEvent error) {
+            _reconnect(error);
+        }
+
+        private void _exception(ExceptionEvent error) {
+            System.err.println("jsn: exception event! " + error);
+        }
+
+        record ExceptionEvent(StompSession session, StompCommand command, StompHeaders headers, byte[] payload, Throwable cause) {
+        }
+
+        record TransportErrorEvent(StompSession session, Throwable cause) {
+        }
+
+        record PongEvent(long time) {
+        }
+
     }
 
     private static void sleep(Duration duration) {

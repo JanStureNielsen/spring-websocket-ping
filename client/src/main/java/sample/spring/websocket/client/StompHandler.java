@@ -1,23 +1,22 @@
 package sample.spring.websocket.client;
 
 import java.lang.reflect.Type;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.BlockingQueue;
 
-import org.HdrHistogram.Histogram;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter;
 
-import sample.spring.websocket.client.Application.StompClient;
+import sample.spring.websocket.client.Application.StompClient.ExceptionEvent;
+import sample.spring.websocket.client.Application.StompClient.PongEvent;
+import sample.spring.websocket.client.Application.StompClient.TransportErrorEvent;
 
 public class StompHandler extends StompSessionHandlerAdapter {
-    private final Histogram histogram = new Histogram(3);
-    private final AtomicLong receiveCount = new AtomicLong();
-    private final StompClient stompClient;
+    private final BlockingQueue<Object> queue;
 
-    public StompHandler(StompClient stompClient) {
-        this.stompClient = stompClient;
+    public StompHandler(BlockingQueue<Object> queue) {
+        this.queue = queue;
     }
 
     @Override
@@ -31,39 +30,18 @@ public class StompHandler extends StompSessionHandlerAdapter {
     }
 
     @Override
-    public void handleException(StompSession session, StompCommand command, StompHeaders headers, byte[] payload, Throwable exception) {
-        System.out.println("handle exception");
-    }
-
-    @Override
     public void handleFrame(StompHeaders headers, Object payload) {
-        histogram.recordValue(System.nanoTime() - (long)payload);
-        receiveCount.incrementAndGet();
+        queue.add(new PongEvent(System.nanoTime() - (long)payload));
     }
 
     @Override
-    public void handleTransportError(StompSession session, Throwable exception) {
-        if (!session.isConnected()) {
-            stompClient.reconnect();
-        }
+    public void handleException(StompSession session, StompCommand command, StompHeaders headers, byte[] payload, Throwable cause) {
+        queue.add(new ExceptionEvent(session, command, headers, payload, cause));
     }
 
-    public void send(StompSession session, long messages, long intervalNanos) {
-        for (var sendAtNanoTime = System.nanoTime(); receiveCount.get() < messages;) {
-            if (System.nanoTime() >= sendAtNanoTime) {
-                session.send("/app/ping", sendAtNanoTime);
-                sendAtNanoTime += intervalNanos;
-            }
-        }
-    }
-
-    public Histogram getHistogram() {
-        return histogram;
-    }
-
-    public void resetCounters() {
-        histogram.reset();
-        receiveCount.set(0);
+    @Override
+    public void handleTransportError(StompSession session, Throwable cause) {
+        queue.add(new TransportErrorEvent(session, cause));
     }
 
     private void _subscribe(String topic, StompSession session) {
