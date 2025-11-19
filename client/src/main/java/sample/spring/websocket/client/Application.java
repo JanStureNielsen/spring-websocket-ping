@@ -88,11 +88,12 @@ public class Application {
                 reconnectLock.lock();
                 try {
                     new Thread(() -> {
-                        for (var connected = false; !connected;) {
+                        while (!this.session.isConnected()) {
+                        //for (var connected = false; !connected;) {
                             try {
                                 Thread.sleep(Duration.ofSeconds(2));
                                 this.session = wsStompClient.connectAsync(url, stompHandler).get();
-                                connected = true;
+                                //connected = true;
                                 System.out.println("jsn: reconnected! notifications: " + reconnects.get());
                             } catch (InterruptedException x) {
                                 Thread.currentThread().interrupt();
@@ -138,6 +139,7 @@ public class Application {
         } catch (Exception ignored) {
         }
     }
+
     private static WebSocketClient webSocketClient(WebSocketClient webSocketClient, boolean sockJs) {
         if (sockJs) {
             List<Transport> transports = new ArrayList<>(1);
