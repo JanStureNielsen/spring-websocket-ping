@@ -10,7 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.HdrHistogram.Histogram;
-import org.springframework.messaging.converter.MappingJackson2MessageConverter;
+import org.springframework.messaging.converter.JacksonJsonMessageConverter;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
@@ -71,7 +71,7 @@ public class Application {
 
         public StompClient() {
             wsStompClient = new WebSocketStompClient(webSocketClient(new StandardWebSocketClient(), true));
-            wsStompClient.setMessageConverter(new MappingJackson2MessageConverter());
+            wsStompClient.setMessageConverter(new JacksonJsonMessageConverter());
             wsStompClient.setTaskScheduler(new ConcurrentTaskScheduler(Executors.newSingleThreadScheduledExecutor()));
             wsStompClient.setDefaultHeartbeat(new long[]{30_000, 30_000});
 
